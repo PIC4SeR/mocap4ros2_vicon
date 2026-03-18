@@ -19,10 +19,10 @@ from ament_index_python.packages import get_package_share_directory
 import launch
 
 from launch import LaunchDescription
-from launch.actions import EmitEvent
+from launch.actions import EmitEvent, GroupAction
 from launch.actions import SetEnvironmentVariable, DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import LifecycleNode
+from launch_ros.actions import LifecycleNode, Node, PushRosNamespace
 from launch_ros.events.lifecycle import ChangeState
 
 import lifecycle_msgs.msg
@@ -30,15 +30,27 @@ import lifecycle_msgs.msg
 
 def generate_launch_description():
 
+    rviz_config_path = os.path.join(get_package_share_directory(
+        'mocap4r2_vicon_driver'), 'rviz', 'vicon.rviz')
     params_file_path = os.path.join(get_package_share_directory(
       'mocap4r2_vicon_driver'), 'config', 'mocap4r2_vicon_driver_params.yaml')
 
     stdout_linebuf_envvar = SetEnvironmentVariable(
         'RCUTILS_LOGGING_BUFFERED_STREAM', '1')
 
-    # print('')
-    # print('params_file_path: ', params_file_path)
-    # print('')
+    group_view_model = GroupAction([
+        PushRosNamespace(LaunchConfiguration('namespace')),
+        Node(package='rviz2',
+             executable='rviz2',
+             name='rviz2',
+             arguments=['-d', rviz_config_path],
+             parameters=[{'use_sim_time': False}],
+             remappings=[
+                ('/tf', 'tf'),
+                ('/tf_static', 'tf_static')
+             ],
+             output='screen')
+    ])
 
     driver_node = LifecycleNode(
         name='mocap4r2_vicon_driver_node',
@@ -70,6 +82,7 @@ def generate_launch_description():
     ld.add_action(DeclareLaunchArgument('namespace', default_value=''))
     ld.add_action(DeclareLaunchArgument('config_file', default_value=params_file_path))
 
+    ld.add_action(group_view_model)
     ld.add_action(stdout_linebuf_envvar)
     ld.add_action(driver_node)
     ld.add_action(driver_configure_trans_event)
