@@ -24,6 +24,7 @@ from launch.actions import SetEnvironmentVariable, DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import LifecycleNode, Node, PushRosNamespace
 from launch_ros.events.lifecycle import ChangeState
+from launch.conditions import IfCondition
 
 import lifecycle_msgs.msg
 
@@ -49,7 +50,8 @@ def generate_launch_description():
                 ('/tf', 'tf'),
                 ('/tf_static', 'tf_static')
              ],
-             output='screen')
+             output='screen',
+             condition=IfCondition(LaunchConfiguration('launch_rviz')))
     ])
 
     driver_node = LifecycleNode(
@@ -81,6 +83,7 @@ def generate_launch_description():
     ld = LaunchDescription()
     ld.add_action(DeclareLaunchArgument('namespace', default_value=''))
     ld.add_action(DeclareLaunchArgument('config_file', default_value=params_file_path))
+    ld.add_action(DeclareLaunchArgument('launch_rviz', default_value='True', choices=['True', 'False']))
 
     ld.add_action(group_view_model)
     ld.add_action(stdout_linebuf_envvar)
