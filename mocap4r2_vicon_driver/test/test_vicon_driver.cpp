@@ -48,6 +48,7 @@ struct FakeVicon
   std::atomic<int> connects{0};
   std::atomic<int> disconnects{0};
   std::atomic<bool> stalled{false};  // connected but no frames
+  mocap4r2_vicon_driver::StreamOptions stream;  // last options set before connect
 };
 
 class FakeSource : public ViconSource
@@ -55,6 +56,10 @@ class FakeSource : public ViconSource
 public:
   explicit FakeSource(std::shared_ptr<FakeVicon> v)
   : v_(std::move(v)) {}
+  void set_stream_options(const mocap4r2_vicon_driver::StreamOptions & o) override
+  {
+    v_->stream = o;
+  }
   void connect(const std::string & host, std::chrono::milliseconds) override
   {
     if (!v_->reachable || host.empty()) {
@@ -223,7 +228,8 @@ TEST_F(ViconDriverTest, cleanup_disconnects_and_reconfigure_works)
 TEST_F(ViconDriverTest, invalid_parameters)
 {
   for (const auto & p : std::vector<std::vector<rclcpp::Parameter>>{
-    {{"host_name", ""}}, {{"timeout", -1.0}}})
+    {{"host_name", ""}}, {{"timeout", -1.0}}, {{"stream_mode", "Push"}},
+    {{"buffer_size", 0}}})
   {
     auto d = make(p);
     d->trigger_transition(Transition::TRANSITION_CONFIGURE);
@@ -232,6 +238,23 @@ TEST_F(ViconDriverTest, invalid_parameters)
     driver_.reset();
   }
   EXPECT_EQ(vicon_->connects, 0);
+}
+
+TEST_F(ViconDriverTest, stream_options_reach_the_source)
+{
+  auto d = make();
+  d->trigger_transition(Transition::TRANSITION_CONFIGURE);
+  EXPECT_EQ(vicon_->stream.mode, "ClientPullPreFetch");  // upstream default
+  EXPECT_EQ(vicon_->stream.buffer_size, 1u);
+  executor_.remove_node(d->get_node_base_interface());
+  driver_.reset();
+  d.reset();
+
+  d = make({{"stream_mode", "ServerPush"}, {"buffer_size", 10}});
+  d->trigger_transition(Transition::TRANSITION_CONFIGURE);
+  ASSERT_EQ(d->get_current_state().id(), State::PRIMARY_STATE_INACTIVE);
+  EXPECT_EQ(vicon_->stream.mode, "ServerPush");
+  EXPECT_EQ(vicon_->stream.buffer_size, 10u);
 }
 
 TEST_F(ViconDriverTest, destroy_while_streaming)

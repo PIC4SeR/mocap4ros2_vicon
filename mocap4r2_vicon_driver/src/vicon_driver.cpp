@@ -35,6 +35,8 @@ ViconDriver::ViconDriver(const rclcpp::NodeOptions & options, SourceFactory fact
   declare_parameter<std::string>("host_name", "192.168.10.1:801");
   declare_parameter<double>("timeout", 2.0);
   declare_parameter<bool>("compensate_latency", true);
+  declare_parameter<std::string>("stream_mode", "ClientPullPreFetch");
+  declare_parameter<int>("buffer_size", 1);
   mocap4r2_control::declare_frame_publisher_parameters(*this);
 }
 
@@ -53,15 +55,32 @@ ViconDriver::on_system_configure()
     RCLCPP_ERROR(get_logger(), "host_name must not be empty and timeout must be > 0");
     return CallbackReturn::FAILURE;
   }
+  StreamOptions stream;
+  stream.mode = get_parameter("stream_mode").as_string();
+  const auto buffer_size = get_parameter("buffer_size").as_int();
+  if (stream.mode != "ClientPullPreFetch" && stream.mode != "ClientPull" &&
+    stream.mode != "ServerPush")
+  {
+    RCLCPP_ERROR(
+      get_logger(), "stream_mode must be ClientPullPreFetch, ClientPull or ServerPush (got '%s')",
+      stream.mode.c_str());
+    return CallbackReturn::FAILURE;
+  }
+  if (buffer_size < 1 || buffer_size > 1000) {
+    RCLCPP_ERROR(get_logger(), "buffer_size must be in [1, 1000]");
+    return CallbackReturn::FAILURE;
+  }
+  stream.buffer_size = static_cast<unsigned int>(buffer_size);
   compensate_latency_ = get_parameter("compensate_latency").as_bool();
   converter_ = ViconConverter();
   source_ = factory_();
+  source_->set_stream_options(stream);
   source_->connect(
     host, std::chrono::milliseconds(static_cast<int64_t>(timeout * 1000.0)));  // throws
   server_label_ = "Vicon DataStream at " + host;
   RCLCPP_INFO(
-    get_logger(), "connected to Vicon DataStream at %s (SDK %s)", host.c_str(),
-    source_->version().c_str());
+    get_logger(), "connected to Vicon DataStream at %s (SDK %s, %s, buffer %u)", host.c_str(),
+    source_->version().c_str(), stream.mode.c_str(), stream.buffer_size);
   publisher_ = std::make_unique<mocap4r2_control::FramePublisher>(*this);
   return CallbackReturn::SUCCESS;
 }
