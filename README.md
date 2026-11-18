@@ -1,83 +1,36 @@
-# mocap4ros2_vicon
+# MOCAP4ROS2 Vicon driver
 
-[![rolling](https://github.com/MOCAP4ROS2-Project/mocap4ros2_vicon/actions/workflows/rolling.yaml/badge.svg)](https://github.com/MOCAP4ROS2-Project/mocap4ros2_vicon/actions/workflows/rolling.yaml)
+[![rolling](https://github.com/MOCAP4ROS2-Project/mocap4ros2_vicon/actions/workflows/rolling.yaml/badge.svg?branch=rolling)](https://github.com/MOCAP4ROS2-Project/mocap4ros2_vicon/actions/workflows/rolling.yaml) [![lyrical](https://github.com/MOCAP4ROS2-Project/mocap4ros2_vicon/actions/workflows/lyrical.yaml/badge.svg?branch=rolling)](https://github.com/MOCAP4ROS2-Project/mocap4ros2_vicon/actions/workflows/lyrical.yaml) [![kilted](https://github.com/MOCAP4ROS2-Project/mocap4ros2_vicon/actions/workflows/kilted.yaml/badge.svg?branch=rolling)](https://github.com/MOCAP4ROS2-Project/mocap4ros2_vicon/actions/workflows/kilted.yaml) [![jazzy](https://github.com/MOCAP4ROS2-Project/mocap4ros2_vicon/actions/workflows/jazzy.yaml/badge.svg?branch=rolling)](https://github.com/MOCAP4ROS2-Project/mocap4ros2_vicon/actions/workflows/jazzy.yaml) [![humble](https://github.com/MOCAP4ROS2-Project/mocap4ros2_vicon/actions/workflows/humble.yaml/badge.svg?branch=rolling)](https://github.com/MOCAP4ROS2-Project/mocap4ros2_vicon/actions/workflows/humble.yaml)
 
-This project provides support for ROS2 integration with Vicon cameras (MOCAP systems based on vision) as part of the project [MOCAP4ROS2](https://rosin-project.eu/ftp/mocap4ros2).
+`mocap4r2_vicon_driver` streams Vicon Nexus, Tracker and Shogun into
+[MOCAP4ROS2](https://mocap4ros2-project.github.io). It builds the Vicon DataStream SDK
+1.13 from its sources (MIT license, in `ThirdParty/`); no Boost, no binaries.
 
-# Installation
+Documentation: https://mocap4ros2-project.github.io/latest/systems/vicon.html
 
-## Dependencies:
-Vicon drivers for ROS2 are based on Vicon DataStream SDK 1.11.0. When compiling the `mocap4r2_vicon_driver`, SDK is downloaded and installed, requiring packages `wget` and `p7zip-full` for this.
-Also, our package depends on other two repositories from MOCAP4ROS2 Project:
-- [mocap4r2_msgs](https://github.com/MOCAP4ROS2-Project/mocap4r2_msgs)
-- [mocap4r2_control](https://github.com/MOCAP4ROS2-Project/mocap)
+## PIC4SeR fork (branch `port-2.0`)
 
-A rosinstall file is provided to automatically manage them. 
-
-## Installation steps:
-The following commands cover all the necessary steps to install DataStream SDK, dependencies and Vicon driver:
+The upstream 2.0.0 driver, unmodified, plus the lab configuration:
 
 ```bash
-## dependencies
-sudo apt-get install wget git p7zip-full 
-
-## create workspace
-mkdir -p ~/mocap4r2_ws/src
-cd ~/mocap4r2_ws/src
-
-## clone vicon repository
-git clone https://github.com/MOCAP4ROS2-Project/mocap4ros2_vicon.git -b master
-## clone necessary mocap repositories
-cp mocap4ros2_vicon/mocap4ros2.rosinstall .rosinstall
-wstool update
-
-## manage ros2 dependencies for our workspace
-# rosdep init may not be needed
-sudo rosdep init
-rosdep update
-rosdep install --from-paths . --ignore-packages-from-source --rosdistro humble -y
-
-## build all
-cd ~/mocap4r2_ws/
-colcon build --symlink-install --packages-up-to mocap4r2_vicon_driver
+ros2 launch mocap4r2_vicon_driver pic4ser_vicon.launch.yaml            # streams on /rigid_bodies
+ros2 launch mocap4r2_vicon_driver pic4ser_vicon.launch.yaml rviz:=true
 ```
 
-# Configuration
+* `config/pic4ser_vicon.yaml`: lab host and `frame_id: mocap` (from the pre-2.0 config).
+* `launch/pic4ser_vicon.launch.yaml`: `autostart:=activate` by default, like the
+  pre-2.0 launch; RViz off by default.
 
-Check `config/mocap4r2_vicon_driver_params.yaml` for the available parameters. Note that `host_name` should be the IP address and port of the machine running VICON tracker. 
+Changes from the pre-2.0 driver that affect consumers: messages are
+`mocap4r2_interfaces` (was `mocap4r2_msgs`); a rigid body is named by its subject
+(`Jackal`, was `Jackal.Jackal`); an occluded subject is published with
+`tracking_valid: false` and an identity pose (was an all-zero pose); stamps are
+compensated for the Vicon latency; the node is `vicon_driver` (was
+`mocap4r2_vicon_driver_node`).
 
-# Launching
-After sourcing the workspace, the Vicon driver can be started using the provided launcher:
+## Acknowledgements
 
-`ros2 launch mocap4r2_vicon_driver mocap4r2_vicon_driver_launch.py`
-
-Remember that the vicon driver is a lifecycle node, so it needs to be signaled to start:
-
-`ros2 lifecycle set /mocap4r2_vicon_driver_node activate`
-
-# About MOCAP4ROS2
-
-The project [MOCAP4ROS2](https://rosin-project.eu/ftp/mocap4ros2) is funded as a Focused Technical Project by [ROSIN](http://rosin-project.eu/). 
-Visit [mocap4ros2-project github.io](https://mocap4ros2-project.github.io/) for additional info and documentation. 
-
-
-<a href="http://rosin-project.eu">
-  <img src="http://rosin-project.eu/wp-content/uploads/rosin_ack_logo_wide.png"
-       alt="rosin_logo" height="60" >
-</a>
-
-Supported by ROSIN - ROS-Industrial Quality-Assured Robot Software Components.  
-More information: <a href="http://rosin-project.eu">rosin-project.eu</a>
-
-<img src="http://rosin-project.eu/wp-content/uploads/rosin_eu_flag.jpg"
-     alt="eu_flag" height="45" align="left" >  
-
-This project has received funding from the European Union’s Horizon 2020  
-research and innovation programme under grant agreement no. 732287.
-
-***
-
-<p align="center"> 
-<img align="center" src="https://github.com/MOCAP4ROS2-Project/mocap4ros2_exp_and_resources/blob/master/resources/mocap4ros_arch.png" 
-    alt="mocap4ros_arch" width="100%">
-</p>
+MOCAP4ROS2 started as a Focused Technical Project of [ROSIN](https://www.rosin-project.eu/),
+which received funding from the European Union’s Horizon 2020 research and innovation
+programme under grant agreement no. 732287. Developed at the
+[Intelligent Robotics Lab](https://intelligentroboticslab.gsyc.urjc.es/), Rey Juan Carlos University.

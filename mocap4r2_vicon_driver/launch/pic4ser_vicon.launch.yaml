@@ -1,0 +1,15 @@
+# PIC4SeR Vicon bringup: the upstream driver launch with the lab parameters,
+# streaming as soon as it connects (the pre-2.0 launch activated the node too;
+# upstream's default autostart is "configure", which waits for a START request).
+launch:
+  - arg: {name: params_file, default: "$(find-pkg-share mocap4r2_vicon_driver)/config/pic4ser_vicon.yaml"}
+  - arg: {name: namespace, default: ""}
+  - arg: {name: autostart, default: activate, description: "none, configure or activate"}
+  - arg: {name: rviz, default: "false", description: "Start marker_viz and RViz"}
+  - include:
+      file: "$(find-pkg-share mocap4r2_vicon_driver)/launch/vicon_driver.launch.yaml"
+      arg:
+        - {name: params_file, value: "$(var params_file)"}
+        - {name: namespace, value: "$(var namespace)"}
+        - {name: autostart, value: "$(var autostart)"}
+        - {name: rviz, value: "$(var rviz)"}

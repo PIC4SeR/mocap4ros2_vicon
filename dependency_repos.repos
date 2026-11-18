@@ -1,9 +1,9 @@
 repositories:
-  mocap4r2_msgs:
+  mocap4r2_interfaces:
     type: git
-    url: https://github.com/MOCAP4ROS2-Project/mocap4r2_msgs.git
-    version: rolling
+    url: https://github.com/MOCAP4ROS2-Project/mocap4r2_interfaces.git
+    version: 2.0.0
   mocap4r2:
     type: git
-    url: https://github.com/MOCAP4ROS2-Project/mocap4r2.git
-    version: rolling
+    url: https://github.com/PIC4SeR/mocap4r2.git
+    version: port-2.0
