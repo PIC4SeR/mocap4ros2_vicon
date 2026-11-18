@@ -1,6 +1,6 @@
 # PIC4SeR lab Vicon. Values carried over from the pre-2.0
 # mocap4r2_vicon_driver_params.yaml; the node is now named vicon_driver.
-vicon_driver:
+/**/vicon_driver:                  # any namespace (a bare "vicon_driver:" only matches the root namespace)
   ros__parameters:
     host_name: "10.8.0.3"           # DataStream port 801 is the SDK default
     timeout: 2.0
