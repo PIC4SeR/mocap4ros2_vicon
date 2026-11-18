@@ -35,6 +35,8 @@ class SdkViconSource : public ViconSource
 public:
   ~SdkViconSource() override {disconnect();}
 
+  void set_stream_options(const StreamOptions & options) override {options_ = options;}
+
   void connect(const std::string & host, std::chrono::milliseconds timeout) override
   {
     client_.SetConnectionTimeout(
@@ -43,10 +45,18 @@ public:
     if (r != sdk::Result::Success) {
       throw std::runtime_error("cannot connect to Vicon DataStream at " + host);
     }
-    // Pre-fetch keeps GetFrame short (never blocked by a silent server), and a
-    // buffer of one frame never delivers stale data after a pause.
-    client_.SetStreamMode(sdk::StreamMode::ClientPullPreFetch);
-    client_.SetBufferSize(1);
+    // Pre-fetch (default) keeps GetFrame short, and a buffer of one frame never
+    // delivers stale data after a pause. ServerPush streams every frame (no
+    // round trip per frame); its GetFrame waits at most 1 s (SDK
+    // s_WaitFrameTimeout), and the buffer absorbs bursts from a jittery link.
+    if (options_.mode == "ServerPush") {
+      client_.SetStreamMode(sdk::StreamMode::ServerPush);
+    } else if (options_.mode == "ClientPull") {
+      client_.SetStreamMode(sdk::StreamMode::ClientPull);
+    } else {
+      client_.SetStreamMode(sdk::StreamMode::ClientPullPreFetch);
+    }
+    client_.SetBufferSize(std::max(1u, options_.buffer_size));
     client_.SetAxisMapping(sdk::Direction::Forward, sdk::Direction::Left, sdk::Direction::Up);
     client_.EnableSegmentData();
     client_.EnableMarkerData();
@@ -146,6 +156,7 @@ private:
   }
 
   sdk::Client client_;
+  StreamOptions options_;
   bool have_last_{false};
   unsigned int last_{0};
 };

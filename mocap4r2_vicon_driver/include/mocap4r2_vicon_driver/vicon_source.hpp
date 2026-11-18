@@ -59,11 +59,26 @@ struct ViconFrame
   std::vector<std::array<double, 3>> unlabeled_markers;
 };
 
+// How frames reach the client (DataStream SDK stream modes).
+//   ClientPullPreFetch  one frame requested at a time, the next one as soon as
+//                       a frame is taken: a frame per network round trip, so a
+//                       slow link (VPN) skips frames.
+//   ClientPull          the same, the request sent only when a frame is taken.
+//   ServerPush          the server streams every frame; the client queues up to
+//                       buffer_size of them (oldest dropped when full).
+struct StreamOptions
+{
+  std::string mode{"ClientPullPreFetch"};
+  unsigned int buffer_size{1};
+};
+
 // Source of Vicon frames: the DataStream SDK, or a fake one in tests.
 class ViconSource
 {
 public:
   virtual ~ViconSource() = default;
+  // Applied by the next connect(). Sources without stream modes ignore it.
+  virtual void set_stream_options(const StreamOptions & /*options*/) {}
   // Connect to host[:port]. Throws std::runtime_error on failure.
   virtual void connect(const std::string & host, std::chrono::milliseconds timeout) = 0;
   // Wait for the next frame. Returns false on timeout or when disconnected.

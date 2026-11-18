@@ -5,6 +5,11 @@
     host_name: "10.8.0.3"           # DataStream port 801 is the SDK default
     timeout: 2.0
     compensate_latency: true        # stamp = reception - latency reported by Vicon
+    # ClientPullPreFetch (upstream default): one frame per network round trip,
+    # skips frames on a slow link. ServerPush: every frame streamed, queued up
+    # to buffer_size (try it over the VPN: tools/compare_2_0 in mocap4r2).
+    stream_mode: "ClientPullPreFetch"
+    buffer_size: 1
     frame_id: "mocap"               # same root frame as before (Z-up, metres)
     publish_markers: true
     publish_rigid_bodies: true      # /rigid_bodies, one body per subject, named by subject only
