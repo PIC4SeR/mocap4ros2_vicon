@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  CycloneDDS profile for the Vicon PC (Windows 11, driver in WSL2 with
+  networkingMode=mirrored, VPN address 10.8.0.3).
+
+  Same scheme as KITT's /workspaces/lab_ws/.cyclone/profile.xml: unicast only on
+  the VPN (the tunnel carries no multicast), explicit peers, same participant
+  index range and buffers. KITT (and 10.8.0.2) must list 10.8.0.3 as a peer too.
+
+  In WSL:
+    export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+    export ROS_DOMAIN_ID=6
+    export CYCLONEDDS_URI=file://$(ros2 pkg prefix mocap4r2_vicon_driver)/share/mocap4r2_vicon_driver/config/cyclonedds_vicon_pc.xml
+-->
+<CycloneDDS xmlns="https://cdds.io/config" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://cdds.io/config https://raw.githubusercontent.com/eclipse-cyclonedds/cyclonedds/master/etc/cyclonedds.xsd">
+    <Domain Id="any">
+        <General>
+            <Interfaces>
+                <!-- By address: in mirrored WSL the VPN adapter keeps its
+                     Windows name, which differs from tun0 on KITT. -->
+                <NetworkInterface autodetermine="false" address="10.8.0.3" />
+            </Interfaces>
+            <AllowMulticast>false</AllowMulticast>
+            <MaxMessageSize>65500B</MaxMessageSize>
+        </General>
+        <Discovery>
+            <EnableTopicDiscoveryEndpoints>true</EnableTopicDiscoveryEndpoints>
+            <!-- Same as KITT: discovery probes participant indexes 0..50 on
+                 each peer, so every host must use the same limit. -->
+            <ParticipantIndex>auto</ParticipantIndex>
+            <MaxAutoParticipantIndex>50</MaxAutoParticipantIndex>
+            <Peers>
+                <Peer Address="10.8.0.1"/>   <!-- KITT -->
+                <Peer Address="10.8.0.2"/>
+                <Peer Address="127.0.0.1"/>  <!-- other ROS processes in this WSL -->
+            </Peers>
+        </Discovery>
+        <Internal>
+            <Watermarks>
+                <WhcHigh>500kB</WhcHigh>
+            </Watermarks>
+        </Internal>
+    </Domain>
+</CycloneDDS>

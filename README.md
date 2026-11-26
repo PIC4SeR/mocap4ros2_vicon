@@ -28,6 +28,38 @@ Changes from the pre-2.0 driver that affect consumers: messages are
 compensated for the Vicon latency; the node is `vicon_driver` (was
 `mocap4r2_vicon_driver_node`).
 
+### Running on the Vicon PC (Windows 11, WSL2)
+
+DataStream is then read locally (no frames lost on the VPN, stamps taken at the
+source) and the driver reaches KITT and the robots over the VPN with
+CycloneDDS unicast peers.
+
+1. `%UserProfile%\.wslconfig` on the Vicon PC:
+   ```ini
+   [wsl2]
+   networkingMode=mirrored
+   [experimental]
+   hostAddressLoopback=true   # WSL may connect to Tracker at the PC's own 10.8.0.3
+   ```
+   With it, `pic4ser_vicon.yaml` (`host_name: "10.8.0.3"`) works unchanged:
+   the DataStream connection stays on the PC.
+2. Hyper-V firewall (admin PowerShell), DDS on domain 6 with participant
+   indexes up to 50 uses UDP 8910-9011:
+   ```powershell
+   New-NetFirewallHyperVRule -Name ROS2-DDS -DisplayName "ROS 2 DDS" -Direction Inbound `
+     -VMCreatorId '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -Protocol UDP -LocalPorts 8900-9100
+   ```
+3. In WSL (Ubuntu 24.04, ROS 2 Jazzy, this workspace built):
+   ```bash
+   export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp ROS_DOMAIN_ID=6
+   export CYCLONEDDS_URI=file://$(ros2 pkg prefix mocap4r2_vicon_driver)/share/mocap4r2_vicon_driver/config/cyclonedds_vicon_pc.xml
+   ros2 launch mocap4r2_vicon_driver pic4ser_vicon.launch.yaml
+   ```
+4. Add `<Peer Address="10.8.0.3"/>` to the CycloneDDS profiles of KITT and
+   10.8.0.2, and stop the driver on KITT (one driver per domain).
+5. Clocks: WSL takes the Windows time; sync Windows to the same source as KITT
+   and the robots (stamps are compared with their TF).
+
 ## Acknowledgements
 
 MOCAP4ROS2 started as a Focused Technical Project of [ROSIN](https://www.rosin-project.eu/),
