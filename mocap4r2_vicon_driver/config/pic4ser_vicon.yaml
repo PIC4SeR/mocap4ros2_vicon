@@ -1,0 +1,16 @@
+# PIC4SeR lab Vicon (Tracker). Values carried over from the pre-2.0
+# mocap4r2_vicon_driver_params.yaml; the node is now named vicon_driver.
+vicon_driver:
+  ros__parameters:
+    host_name: "192.168.0.113"      # DataStream port 801 is the SDK default
+    timeout: 2.0
+    compensate_latency: true        # stamp = reception - latency reported by Vicon
+    frame_id: "mocap"               # same root frame as before (Z-up, metres)
+    publish_markers: true
+    publish_rigid_bodies: true      # /rigid_bodies, one body per subject, named by subject only
+    publish_skeletons: false        # PIC4SeR subjects are single-segment rigid bodies
+    publish_tf: false
+    tf_prefix: ""
+    qos:
+      reliability: "reliable"
+      depth: 10
